@@ -1,7 +1,7 @@
 import os
-import joblib
 import argparse
 from datetime import datetime
+import joblib
 
 import pandas as pd
 import numpy as np
@@ -20,12 +20,11 @@ from sklearn.metrics import mean_squared_error
 from sklearn.pipeline import make_pipeline
 
 from prefect import flow, task, get_run_logger
-# from prefect.task_runners import SequentialTaskRunner
 
 
-# # @task
 def full_prep_pipeline(num_transformer, cat_transformer):
-    num_attribs = ["Length", "Diameter", "Height", "Whole_weight", "Shucked_weight", "Viscera_weight", "Shell_weight"]
+    num_attribs = ["Length", "Diameter", "Height", "Whole_weight",
+                   "Shucked_weight", "Viscera_weight", "Shell_weight"]
     cat_attribs = ["Sex"]
 
     pipeline = ColumnTransformer([
@@ -35,13 +34,10 @@ def full_prep_pipeline(num_transformer, cat_transformer):
     return pipeline
 
 
-# # @task
 def load_data(path, pipeline):
-    columns = ["Sex", "Length", "Diameter", "Height", "Whole_weight",
-               "Shucked_weight", "Viscera_weight", "Shell_weight", "Rings"]
     target = "Rings"
 
-    data = pd.read_csv(path)  # , names=columns
+    data = pd.read_csv(path)
     X = data.drop(columns=target)
     y = data[target]
     X_train, X_test, y_train, y_test = train_test_split(X, y,
@@ -66,14 +62,18 @@ def train_model(X_train, X_test, y_train, y_test, pipeline):
                                                                    "fit_intercept": [True, False],
                                                                    "positive": [True, False]}},
                   {"estimator": Lasso(),
-                   "param_grid": {"alpha": [0.1, 0.25, 0.5, 0.75, 1], "fit_intercept": [True, False]}},
+                   "param_grid": {"alpha": [0.1, 0.25, 0.5, 0.75, 1],
+                                  "fit_intercept": [True, False]}},
                   {"estimator": Ridge(),
-                   "param_grid": {"alpha": [0.1, 0.25, 0.5, 0.75, 1], "fit_intercept": [True, False]}},
+                   "param_grid": {"alpha": [0.1, 0.25, 0.5, 0.75, 1],
+                                  "fit_intercept": [True, False]}},
                   {"estimator": ElasticNet(),
-                   "param_grid": {"alpha": [0.1, 0.25, 0.5, 0.755, 1], "fit_intercept": [True, False],
+                   "param_grid": {"alpha": [0.1, 0.25, 0.5, 0.755, 1],
+                                  "fit_intercept": [True, False],
                                   "l1_ratio": [0, 0.25, 0.5, 0.75, 1]}},
                   {"estimator": RandomForestRegressor(),
-                   "param_grid": {"n_estimators": [3, 10, 30, 50], "max_features": [2, 4, 6, 8, 10]}},
+                   "param_grid": {"n_estimators": [3, 10, 30, 50],
+                                  "max_features": [2, 4, 6, 8, 10]}},
                   ]
 
     for param in parameters:
@@ -130,7 +130,8 @@ def register_models(experiment_name, registered_model, tracking_uri):
 
     # The runs are ordered in ascending order of the test_rmse metric;
     #   the first run in `runs` is therefore the best model.
-    # The model in this run will be registered to `Production` while the orders will be put in `Staging`.
+    # The model in this run will be registered to `Production`
+    #   while the orders will be put in `Staging`.
 
     for run in runs:
         logger.info("getting model from run: {run.info.run_id}...")
@@ -139,9 +140,10 @@ def register_models(experiment_name, registered_model, tracking_uri):
 
         # set tags for current run model version
         logger.info("setting tags to model...")
-        client.set_model_version_tag(registered_model, model_version.version, "model", run.data.tags["model"])
-        client.set_model_version_tag(registered_model, model_version.version, "experiment_id",
-                                     run.info.experiment_id)
+        client.set_model_version_tag(registered_model, model_version.version,
+                                     "model", run.data.tags["model"])
+        client.set_model_version_tag(registered_model, model_version.version,
+                                     "experiment_id", run.info.experiment_id)
 
         # transition model version stage to "Staging"
         logger.info("Transitioning model version stage to 'Staging'...")

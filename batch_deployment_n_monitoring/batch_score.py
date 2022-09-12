@@ -20,10 +20,12 @@ from evidently.dashboard import Dashboard
 from evidently.dashboard.tabs import DataDriftTab, RegressionPerformanceTab
 
 from evidently.model_profile import Profile
-from evidently.model_profile.sections import DataDriftProfileSection, RegressionPerformanceProfileSection
+from evidently.model_profile.sections import (DataDriftProfileSection,
+                                              RegressionPerformanceProfileSection)
 
 
 def generate_uuids(n):
+    # pylint: disable=unused-variable
     ride_ids = []
     for i in range(n):
         ride_ids.append(str(uuid.uuid4()))
@@ -54,6 +56,7 @@ def prepare_results(df, y_pred, run_id):
 
 
 def get_paths(run_date, run_id):
+    # pylint: disable=line-too-long
     prev_month = run_date - relativedelta(months=1)
     year = prev_month.year
     month = prev_month.month
@@ -66,6 +69,8 @@ def get_paths(run_date, run_id):
 
 @task
 def load_model(run_id, experiment_id):
+    # pylint: disable=line-too-long
+
     logger = get_run_logger()
 
     logger.info(f"loading the model with RUN_ID={run_id} ...")
@@ -81,7 +86,7 @@ def apply_model(input_file, model, output_file, run_id):
     df = read_dataframe(input_file)
     x = prepare_features(df)
 
-    logger.info(f"applying the model...")
+    logger.info("applying the model...")
     y_pred = model.predict(x)
 
     df_result = prepare_results(df, y_pred, run_id)
@@ -142,7 +147,9 @@ def predict_n_monitor(
 
     df_result = abalone_age_prediction(run_id, model, run_date)
 
-    reference_data = load_reference_data("s3://mlops-zoomcamp-datasets/reference-data/abalone_data.csv", model)
+    reference_data = load_reference_data(
+        "s3://mlops-zoomcamp-datasets/reference-data/abalone_data.csv",
+        model)
     monitoring_results = run_evidently(reference_data, df_result)
 
     save_html_report(monitoring_results, run_date)

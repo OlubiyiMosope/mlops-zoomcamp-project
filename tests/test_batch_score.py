@@ -23,6 +23,7 @@ def test_prepare_results():
 
 
 def test_get_path():
+    # pylint: disable=unidiomatic-typecheck
     run_date = datetime(year=2022, month=9, day=1)
     run_id = "23e4356sdas84gba9red4356flk24rf64adf"
 

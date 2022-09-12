@@ -1,11 +1,10 @@
 import os
 
-
+from abalone_flow import abalone_train_register
 from prefect.deployments import Deployment
 from prefect.filesystems import S3
 from prefect.orion.schemas.schedules import CronSchedule
 
-from abalone_flow import abalone_train_register
 
 def storage_block(block_name):
     """
@@ -23,9 +22,11 @@ def storage_block(block_name):
         aws_access_key_id = os.environ.get("AWS_ACCESS_KEY_ID")
         aws_secret_access_key = os.environ.get("AWS_SECRET_ACCESS_KEY")
 
-        block = S3(bucket_path="mlops-zoomcamp-prefect-storage",
-                   aws_access_key_id=aws_access_key_id,
-                   aws_secret_access_key=aws_secret_access_key)
+        block = S3(
+            bucket_path="mlops-zoomcamp-prefect-storage",
+            aws_access_key_id=aws_access_key_id,
+            aws_secret_access_key=aws_secret_access_key,
+        )
         block.save(block_name)
         storage = S3.load(block_name)
         return storage
@@ -54,7 +55,7 @@ deployment = Deployment.build_from_flow(
     tags=["ml", "abalone", "monitoring", "training", "registry"],
     path="abalone-workflows",
     description="Deployment to schedule the batch deployment and \
-    batch monitoring of abalone_age_prediction model."
+    batch monitoring of abalone_age_prediction model.",
 )
 
 

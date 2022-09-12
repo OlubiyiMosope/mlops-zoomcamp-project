@@ -1,36 +1,39 @@
-import os
 import argparse
+import os
 from datetime import datetime
+
 import joblib
-
-import pandas as pd
-import numpy as np
-
 import mlflow
+import numpy as np
+import pandas as pd
 from mlflow.entities import ViewType
 from mlflow.tracking import MlflowClient
-
-from sklearn.linear_model import LinearRegression, Lasso, Ridge, ElasticNet
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
-from sklearn.model_selection import train_test_split
+from prefect import flow, get_run_logger, task
 from sklearn.compose import ColumnTransformer
-from sklearn.model_selection import RandomizedSearchCV  # RandomizedSearchCV, GridSearchCV
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import ElasticNet, Lasso, LinearRegression, Ridge
 from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.model_selection import train_test_split
 from sklearn.pipeline import make_pipeline
-
-from prefect import flow, task, get_run_logger
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 
 
 def full_prep_pipeline(num_transformer, cat_transformer):
-    num_attribs = ["Length", "Diameter", "Height", "Whole_weight",
-                   "Shucked_weight", "Viscera_weight", "Shell_weight"]
+    num_attribs = [
+        "Length",
+        "Diameter",
+        "Height",
+        "Whole_weight",
+        "Shucked_weight",
+        "Viscera_weight",
+        "Shell_weight",
+    ]
     cat_attribs = ["Sex"]
 
-    pipeline = ColumnTransformer([
-        ("num", num_transformer(), num_attribs),
-        ("cat", cat_transformer(), cat_attribs)
-    ])
+    pipeline = ColumnTransformer(
+        [("num", num_transformer(), num_attribs), ("cat", cat_transformer(), cat_attribs)]
+    )
     return pipeline
 
 
@@ -40,8 +43,7 @@ def load_data(path, pipeline):
     data = pd.read_csv(path)
     X = data.drop(columns=target)
     y = data[target]
-    X_train, X_test, y_train, y_test = train_test_split(X, y,
-                                                        train_size=0.8, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.8, random_state=42)
 
     X_train = pipeline.fit_transform(X_train)
     X_test = pipeline.transform(X_test)
@@ -58,37 +60,52 @@ def train_model(X_train, X_test, y_train, y_test, pipeline):
     pipeline_loc = f"mlflow_artifacts/preprocessor_{date}.pkl"
     joblib.dump(pipeline, pipeline_loc)
 
-    parameters = [{"estimator": LinearRegression(), "param_grid": {"n_jobs": [-1],
-                                                                   "fit_intercept": [True, False],
-                                                                   "positive": [True, False]}},
-                  {"estimator": Lasso(),
-                   "param_grid": {"alpha": [0.1, 0.25, 0.5, 0.75, 1],
-                                  "fit_intercept": [True, False]}},
-                  {"estimator": Ridge(),
-                   "param_grid": {"alpha": [0.1, 0.25, 0.5, 0.75, 1],
-                                  "fit_intercept": [True, False]}},
-                  {"estimator": ElasticNet(),
-                   "param_grid": {"alpha": [0.1, 0.25, 0.5, 0.755, 1],
-                                  "fit_intercept": [True, False],
-                                  "l1_ratio": [0, 0.25, 0.5, 0.75, 1]}},
-                  {"estimator": RandomForestRegressor(),
-                   "param_grid": {"n_estimators": [3, 10, 30, 50],
-                                  "max_features": [2, 4, 6, 8, 10]}},
-                  ]
+    parameters = [
+        {
+            "estimator": LinearRegression(),
+            "param_grid": {
+                "n_jobs": [-1],
+                "fit_intercept": [True, False],
+                "positive": [True, False],
+            },
+        },
+        {
+            "estimator": Lasso(),
+            "param_grid": {"alpha": [0.1, 0.25, 0.5, 0.75, 1], "fit_intercept": [True, False]},
+        },
+        {
+            "estimator": Ridge(),
+            "param_grid": {"alpha": [0.1, 0.25, 0.5, 0.75, 1], "fit_intercept": [True, False]},
+        },
+        {
+            "estimator": ElasticNet(),
+            "param_grid": {
+                "alpha": [0.1, 0.25, 0.5, 0.755, 1],
+                "fit_intercept": [True, False],
+                "l1_ratio": [0, 0.25, 0.5, 0.75, 1],
+            },
+        },
+        {
+            "estimator": RandomForestRegressor(),
+            "param_grid": {"n_estimators": [3, 10, 30, 50], "max_features": [2, 4, 6, 8, 10]},
+        },
+    ]
 
     for param in parameters:
         logger.info(f"Starting new run: {param['estimator']}...")
         # print(f"Starting new run: {param['estimator']}...")
         with mlflow.start_run():
-            mlflow.set_tag("model", str(param['estimator']))
+            mlflow.set_tag("model", str(param["estimator"]))
 
             # log the data preprocessor pipeline object as artifact.
             mlflow.log_artifact(pipeline_loc, artifact_path="preprocessor")
 
-            search_cv = RandomizedSearchCV(param["estimator"], param["param_grid"],
-                                           scoring='neg_mean_squared_error',
-                                           return_train_score=True
-                                           )
+            search_cv = RandomizedSearchCV(
+                param["estimator"],
+                param["param_grid"],
+                scoring="neg_mean_squared_error",
+                return_train_score=True,
+            )
             search_cv.fit(X_train, y_train)
 
             # save the search cv object to external file.
@@ -117,7 +134,7 @@ def train_model(X_train, X_test, y_train, y_test, pipeline):
 def register_models(experiment_name, registered_model, tracking_uri):
     logger = get_run_logger()
 
-    logger.info(F"TRACKING SERVER: {tracking_uri}")
+    logger.info(f"TRACKING SERVER: {tracking_uri}")
     client = MlflowClient(tracking_uri)
     experiment = client.get_experiment_by_name(experiment_name)
 
@@ -125,7 +142,7 @@ def register_models(experiment_name, registered_model, tracking_uri):
         experiment_ids=experiment.experiment_id,
         filter_string="attributes.status='FINISHED'",
         run_view_type=ViewType.ACTIVE_ONLY,  # search for active runs only
-        order_by=["metrics.test_rmse ASC"]
+        order_by=["metrics.test_rmse ASC"],
     )
 
     # The runs are ordered in ascending order of the test_rmse metric;
@@ -140,10 +157,12 @@ def register_models(experiment_name, registered_model, tracking_uri):
 
         # set tags for current run model version
         logger.info("setting tags to model...")
-        client.set_model_version_tag(registered_model, model_version.version,
-                                     "model", run.data.tags["model"])
-        client.set_model_version_tag(registered_model, model_version.version,
-                                     "experiment_id", run.info.experiment_id)
+        client.set_model_version_tag(
+            registered_model, model_version.version, "model", run.data.tags["model"]
+        )
+        client.set_model_version_tag(
+            registered_model, model_version.version, "experiment_id", run.info.experiment_id
+        )
 
         # transition model version stage to "Staging"
         logger.info("Transitioning model version stage to 'Staging'...")
@@ -151,7 +170,7 @@ def register_models(experiment_name, registered_model, tracking_uri):
             name=registered_model,
             version=model_version.version,
             stage="Staging",
-            archive_existing_versions=False
+            archive_existing_versions=False,
         )
 
         # Add description to current model version
@@ -160,7 +179,7 @@ def register_models(experiment_name, registered_model, tracking_uri):
             name=registered_model,
             version=model_version.version,
             description=f"The model: {run.data.tags['model']}, \
-            test_rmse: ~{np.round(run.data.metrics['test_rmse'], 3)}"
+            test_rmse: ~{np.round(run.data.metrics['test_rmse'], 3)}",
         )
 
     # Transition best model stage to `Production`
@@ -172,7 +191,7 @@ def register_models(experiment_name, registered_model, tracking_uri):
         name=registered_model,
         version=best_model_version.version,
         stage="Production",
-        archive_existing_versions=False
+        archive_existing_versions=False,
     )
 
     # Add description to `Production` stage model
@@ -180,7 +199,7 @@ def register_models(experiment_name, registered_model, tracking_uri):
         name=registered_model,
         version=best_model_version.version,
         description=f"The production model: {best_run.data.tags['model']}, \
-                test_rmse: ~{np.round(best_run.data.metrics['test_rmse'], 3)}"
+        test_rmse: ~{np.round(best_run.data.metrics['test_rmse'], 3)}",
     )
 
 
@@ -188,10 +207,7 @@ def register_models(experiment_name, registered_model, tracking_uri):
 def make_best_model_pipeline(best_model, pipeline, experiment_name, tracking_uri):
     logger = get_run_logger()
 
-    model = make_pipeline(
-        pipeline,
-        best_model
-    )
+    model = make_pipeline(pipeline, best_model)
 
     # creating new experiment
     new_exp_name = f"{experiment_name}_production"
@@ -233,23 +249,24 @@ def abalone_train_register(path, experiment_name, registered_model, tracking_ser
 def main():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("path", type=str,
-                        help="Path to the location of the data.")
-    parser.add_argument("experiment_name", type=str,
-                        help="Name of Mlflow experiment.")
-    parser.add_argument("registered_model", type=str,
-                        help="Name of Mlflow Model Registry's registered model.")
-    parser.add_argument("tracking_server_host", type=str,
-                        help="Tracking server host's public IP address")
+    parser.add_argument("path", type=str, help="Path to the location of the data.")
+    parser.add_argument("experiment_name", type=str, help="Name of Mlflow experiment.")
+    parser.add_argument(
+        "registered_model", type=str, help="Name of Mlflow Model Registry's registered model."
+    )
+    parser.add_argument(
+        "tracking_server_host", type=str, help="Tracking server host's public IP address"
+    )
 
     args = parser.parse_args()
 
-    abalone_train_register(args.path,
-                           args.experiment_name,
-                           args.registered_model,
-                           args.tracking_server_host,
-                           )
+    abalone_train_register(
+        args.path,
+        args.experiment_name,
+        args.registered_model,
+        args.tracking_server_host,
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

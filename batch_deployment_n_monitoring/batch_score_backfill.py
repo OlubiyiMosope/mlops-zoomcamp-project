@@ -1,9 +1,8 @@
 from datetime import datetime
-from dateutil.relativedelta import relativedelta
-
-from prefect import flow
 
 import batch_score
+from dateutil.relativedelta import relativedelta
+from prefect import flow
 
 
 @flow
@@ -15,13 +14,11 @@ def abalone_prediction_backfill():
 
     while d <= end_date:
         batch_score.predict_n_monitor(
-            run_id="08b42e845ce74b0cbc5e6659a9952b97",
-            experiment_id="5",
-            run_date=d
+            run_id="08b42e845ce74b0cbc5e6659a9952b97", experiment_id="5", run_date=d
         )
 
         d = d + relativedelta(months=1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     abalone_prediction_backfill()

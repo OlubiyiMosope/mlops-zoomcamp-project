@@ -1,27 +1,26 @@
-import json
-
-import uuid
 import argparse
+import json
+import uuid
 from datetime import datetime
-from dateutil.relativedelta import relativedelta
 
 import mlflow
 import pandas as pd
-
-from prefect import task, flow, get_run_logger
+from dateutil.relativedelta import relativedelta
+from evidently import ColumnMapping
+from evidently.dashboard import Dashboard
+from evidently.dashboard.tabs import DataDriftTab, RegressionPerformanceTab
+from evidently.model_profile import Profile
+from evidently.model_profile.sections import (
+    DataDriftProfileSection, RegressionPerformanceProfileSection)
+from prefect import flow, get_run_logger, task
 from prefect.context import get_run_context
+
 # from prefect.task_runners import SequentialTaskRunner
 
 # from pymongo import MongoClient
 
-from evidently import ColumnMapping
 
-from evidently.dashboard import Dashboard
-from evidently.dashboard.tabs import DataDriftTab, RegressionPerformanceTab
 
-from evidently.model_profile import Profile
-from evidently.model_profile.sections import (DataDriftProfileSection,
-                                              RegressionPerformanceProfileSection)
 
 
 def generate_uuids(n):
@@ -40,8 +39,16 @@ def read_dataframe(filename: str):
 
 
 def prepare_features(df):
-    features = ["Sex", "Length", "Diameter", "Height", "Whole_weight",
-                "Shucked_weight", "Viscera_weight", "Shell_weight"]
+    features = [
+        "Sex",
+        "Length",
+        "Diameter",
+        "Height",
+        "Whole_weight",
+        "Shucked_weight",
+        "Viscera_weight",
+        "Shell_weight",
+    ]
     x = df[features]
     return x
 
@@ -62,7 +69,9 @@ def get_paths(run_date, run_id):
     month = prev_month.month
 
     input_file = f"s3://mlops-zoomcamp-datasets/live/reserved_{month}.csv"
-    output_file = f"s3://mlops-zoomcamp-datasets/output-files/year={year:04d}/month={month:02d}/{run_id}.csv"
+    output_file = (
+        f"s3://mlops-zoomcamp-datasets/output-files/year={year:04d}/month={month:02d}/{run_id}.csv"
+    )
 
     return input_file, output_file
 
@@ -107,14 +116,24 @@ def load_reference_data(filename, model):
 
 @task
 def run_evidently(df_ref, data):
-    num_attribs = ["Length", "Diameter", "Height", "Whole_weight",
-                   "Shucked_weight", "Viscera_weight", "Shell_weight"]
+    num_attribs = [
+        "Length",
+        "Diameter",
+        "Height",
+        "Whole_weight",
+        "Shucked_weight",
+        "Viscera_weight",
+        "Shell_weight",
+    ]
     cat_attribs = ["Sex"]
     profile = Profile(sections=[DataDriftProfileSection(), RegressionPerformanceProfileSection()])
-    mapping = ColumnMapping(prediction="predicted_rings", numerical_features=num_attribs,
-                            categorical_features=cat_attribs, target="Rings",
-                            datetime_features=[]
-                            )
+    mapping = ColumnMapping(
+        prediction="predicted_rings",
+        numerical_features=num_attribs,
+        categorical_features=cat_attribs,
+        target="Rings",
+        datetime_features=[],
+    )
     profile.calculate(df_ref, data, mapping)
 
     dashboard = Dashboard(tabs=[DataDriftTab(), RegressionPerformanceTab(verbose_level=0)])
@@ -135,10 +154,7 @@ def save_html_report(result, run_date):
 
 
 @flow  # (task_runner=SequentialTaskRunnerunner())
-def predict_n_monitor(
-        run_id: str,
-        experiment_id: str,
-        run_date: datetime = None):
+def predict_n_monitor(run_id: str, experiment_id: str, run_date: datetime = None):
     if run_date is None:
         ctx = get_run_context()
         run_date = ctx.flow_run.expected_start_time
@@ -148,8 +164,8 @@ def predict_n_monitor(
     df_result = abalone_age_prediction(run_id, model, run_date)
 
     reference_data = load_reference_data(
-        "s3://mlops-zoomcamp-datasets/reference-data/abalone_data.csv",
-        model)
+        "s3://mlops-zoomcamp-datasets/reference-data/abalone_data.csv", model
+    )
     monitoring_results = run_evidently(reference_data, df_result)
 
     save_html_report(monitoring_results, run_date)
@@ -158,21 +174,24 @@ def predict_n_monitor(
 def run():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("run_id", type=str,  # "cdd99c2996c042ab9e7bf93845357d48"
-                        help="Run-id of run that produced the model.")
-    parser.add_argument("experiment_id", type=str,
-                        help="Experiment-id of experiment that produced the model.")
-    parser.add_argument("year", type=int,
-                        help="Year of execution date.")
-    parser.add_argument("month", type=int,
-                        help="Month of execution date.")
+    parser.add_argument(
+        "run_id",
+        type=str,  # "cdd99c2996c042ab9e7bf93845357d48"
+        help="Run-id of run that produced the model.",
+    )
+    parser.add_argument(
+        "experiment_id", type=str, help="Experiment-id of experiment that produced the model."
+    )
+    parser.add_argument("year", type=int, help="Year of execution date.")
+    parser.add_argument("month", type=int, help="Month of execution date.")
 
     args = parser.parse_args()
 
-    predict_n_monitor(run_id=args.run_id,
-                      experiment_id=args.experiment_id,
-                      run_date=datetime(year=args.year, month=args.month, day=1)
-                      )
+    predict_n_monitor(
+        run_id=args.run_id,
+        experiment_id=args.experiment_id,
+        run_date=datetime(year=args.year, month=args.month, day=1),
+    )
 
 
 if __name__ == "__main__":

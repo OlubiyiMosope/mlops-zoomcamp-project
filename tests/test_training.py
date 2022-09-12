@@ -1,9 +1,9 @@
 from pathlib import Path
+
 import joblib
 import numpy as np
 
 from training import abalone_flow
-
 
 test_directory = Path(__file__).parent
 

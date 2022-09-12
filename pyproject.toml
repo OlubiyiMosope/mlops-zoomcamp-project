@@ -5,3 +5,7 @@ disable = [
     "missing-module-docstring",
     "duplicate-code"
 ]
+
+[tool.black]
+line-length=100
+target-version=["py38"]

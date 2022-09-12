@@ -55,6 +55,15 @@ The file containing the code that does this splitting is `prepare_data.ipynb`.
 The model is trained by running a randomized search over the following regression models `RandomForestRegressor`, `ElasticNet`, `Ridge`, `LinearRegression` and `Lasso` across a range of hyperparameters.  
 Experiment tracking is done using MLFlow. The best estimators i.e the model with the lowest `validation_rmse` for a hyperparameter configuration of the regression models is registered in MlFlow's model registry.  
 The chosen best model is then transitioned to "production" stage in the model registry.  
+The model training is orchestrated via a fully deployed workflow with Prefect.
 
 This same best model, is merged with the preprocessing pipeline to make a single `.pkl` Python object and is logged to a new experiment (the new experiment name has  "\_production" appended to previous experiment name). 
 This combined preprocessor and model, as a single object, will be used for making predictions will in deployment.
+
+
+### Model Deployment
+Model is deployed using batch deployment method.  
+The orchestration of this is fully automated by Prefect, with the prediction and model monitoring scheduled to happen on the second day of every month.
+Input data, as well as reference data required for measuring data drift is loaded from an s3 bucket storage. The combined, single object preprocessor and model, is loaded and applied to both input and reference to make predictions. 
+
+These prediction results are then fed to Evidently which uses it to calculate data drift and the regression model performance.  The results of this calculations are then used to generate interactive html reports, which contain visuals, charts and metrics which could be further explored.

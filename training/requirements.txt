@@ -1,0 +1,9 @@
+boto3
+joblib
+mlflow
+numpy
+pandas
+prefect==2.2.0
+s3fs
+scikit-learn==1.0.2
+psycopg2-binary

@@ -1,0 +1,69 @@
+###
+### A complete description of a Prefect Deployment for flow 'abalone-train-register'
+###
+name: abalone-model-training-practice
+description: Deployment to schedule the batch deployment and batch monitoring of abalone_age_prediction
+  model.
+version: aaaa742d90e979c7983f11a29fa27eda
+# The work queue that will handle this deployment's runs
+work_queue_name: training-registry-workqueue-practice
+tags:
+- ml
+- abalone
+- monitoring
+- training
+- registry
+parameters:
+  path: s3://mlops-zoomcamp-datasets/reference-data/abalone_data.csv
+  experiment_name: abalone-age-prediction-practice
+  registered_model: abalone-age-regressor-practice
+  tracking_uri: 3.129.87.23
+schedule:
+  cron: 0 3 2 * *
+  timezone: null
+  day_or: true
+infra_overrides: {}
+infrastructure:
+  type: process
+  env: {}
+  labels: {}
+  name: null
+  command:
+  - python
+  - -m
+  - prefect.engine
+  stream_output: true
+
+###
+### DO NOT EDIT BELOW THIS LINE
+###
+flow_name: abalone-train-register
+manifest_path: null
+storage:
+  bucket_path: mlops-zoomcamp-prefect-storage
+  aws_access_key_id: '**********'
+  aws_secret_access_key: '**********'
+  _block_document_id: 178371f2-4883-4600-a7b7-28c37df465b9
+  _block_document_name: train-register-block
+  _is_anonymous: false
+  _block_type_slug: s3
+path: null
+entrypoint: C:\Users\user\Documents\Projects - Unpublished\MLOps_project\training\abalone_flow.py:abalone_train_register
+parameter_openapi_schema:
+  title: Parameters
+  type: object
+  properties:
+    path:
+      title: path
+    experiment_name:
+      title: experiment_name
+    registered_model:
+      title: registered_model
+    tracking_server_host:
+      title: tracking_server_host
+  required:
+  - path
+  - experiment_name
+  - registered_model
+  - tracking_server_host
+  definitions: null

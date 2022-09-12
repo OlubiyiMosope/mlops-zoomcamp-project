@@ -1,0 +1,65 @@
+###
+### A complete description of a Prefect Deployment for flow 'predict-n-monitor'
+###
+name: abalone-model-training-practice
+description: Deployment to schedule the batch deployment and batch monitoring of abalone_age_prediction
+  model.
+version: 43134062b7f7f5bd3d600286c4eb3c6c
+# The work queue that will handle this deployment's runs
+work_queue_name: training-registry-practice
+tags:
+- ml
+- abalone
+- monitoring
+parameters:
+  run_id: 08b42e845ce74b0cbc5e6659a9952b97
+  experiment_id: '5'
+schedule:
+  cron: 0 3 2 * *
+  timezone: null
+  day_or: true
+infra_overrides: {}
+infrastructure:
+  type: process
+  env: {}
+  labels: {}
+  name: null
+  command:
+  - python
+  - -m
+  - prefect.engine
+  stream_output: true
+
+###
+### DO NOT EDIT BELOW THIS LINE
+###
+flow_name: predict-n-monitor
+manifest_path: null
+storage:
+  bucket_path: mlops-zoomcamp-prefect-storage
+  aws_access_key_id: '**********'
+  aws_secret_access_key: '**********'
+  _block_document_id: 68135c1d-0535-44db-bf6f-b521337c6a23
+  _block_document_name: prefect-s3-block
+  _is_anonymous: false
+  _block_type_slug: s3
+path: null
+entrypoint: C:\Users\user\Documents\Projects - Unpublished\MLOps_project\batch_deployment_n_monitoring\batch_score.py:predict_n_monitor
+parameter_openapi_schema:
+  title: Parameters
+  type: object
+  properties:
+    run_id:
+      title: run_id
+      type: string
+    experiment_id:
+      title: experiment_id
+      type: string
+    run_date:
+      title: run_date
+      type: string
+      format: date-time
+  required:
+  - run_id
+  - experiment_id
+  definitions: null

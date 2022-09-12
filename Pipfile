@@ -1,0 +1,24 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+boto3 = "*"
+joblib = "*"
+mlflow = "*"
+numpy = "*"
+pandas = "*"
+prefect = "==2.2.0"
+scikit-learn = "==1.0.2"
+psycopg2-binary = "*"
+s3fs = "*"
+evidently = "*"
+pytest = "*"
+
+[dev-packages]
+pytest = "*"
+pylint = "*"
+
+[requires]
+python_version = "3.8"

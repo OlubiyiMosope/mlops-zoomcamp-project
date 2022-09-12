@@ -1,4 +1,4 @@
 .idea/
 .ipynb_checkpoints/
 .pytest_cache/
-
+.pre-commit-config.yaml

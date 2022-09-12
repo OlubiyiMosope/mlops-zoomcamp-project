@@ -46,12 +46,12 @@ s_block = storage_block(name)
 
 deployment = Deployment.build_from_flow(
     flow=abalone_train_register,
-    name="abalone-model-training-practice",
+    name="abalone-model-training",
     schedule=CronSchedule(cron="0 3 2 * *"),
     parameters=parameters,
     storage=s_block,
     output="abalone-deployment.yaml",
-    work_queue_name="training-registry-workqueue-practice",
+    work_queue_name="training-registry-workqueue",
     tags=["ml", "abalone", "monitoring", "training", "registry"],
     path="abalone-workflows",
     description="Deployment to schedule the batch deployment and \

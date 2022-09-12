@@ -48,3 +48,13 @@ File is uploaded to s3 bucket at this location: "s3://mlops-zoomcamp-datasets/re
 The file containing the code that does this splitting is `prepare_data.ipynb`.
 
 
+### Training
+- Scaling of numerical features is done with `MinMaxScaler`
+- Scaling of categorical features is done with `OneHotEncoder`
+
+The model is trained by running a randomized search over the following regression models `RandomForestRegressor`, `ElasticNet`, `Ridge`, `LinearRegression` and `Lasso` across a range of hyperparameters.  
+Experiment tracking is done using MLFlow. The best estimators i.e the model with the lowest `validation_rmse` for a hyperparameter configuration of the regression models is registered in MlFlow's model registry.  
+The chosen best model is then transitioned to "production" stage in the model registry.  
+
+This same best model, is merged with the preprocessing pipeline to make a single `.pkl` Python object and is logged to a new experiment (the new experiment name has  "\_production" appended to previous experiment name). 
+This combined preprocessor and model, as a single object, will be used for making predictions will in deployment.
